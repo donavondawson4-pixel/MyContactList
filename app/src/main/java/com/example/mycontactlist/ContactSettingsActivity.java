@@ -2,10 +2,12 @@ package com.example.mycontactlist;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.ScrollView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,13 +17,40 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class ContactSettingsActivity extends AppCompatActivity {
 
+    private static final String PREFERENCES_NAME =
+            "MyContactListPreferences";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_contact_settings);
 
+        ScrollView scrollViewObject = findViewById(R.id.scrollViewSettings);
+
+        SharedPreferences preferences = getSharedPreferences(
+                PREFERENCES_NAME,
+                Context.MODE_PRIVATE
+        );
+
+        String backgroundColor =
+                preferences.getString("backgroundcolor", "white");
+
+        if ("blue".equals(backgroundColor)) {
+            scrollViewObject.setBackgroundResource(
+                    R.color.settings_background_blue
+            );
+        } else if ("green".equals(backgroundColor)) {
+            scrollViewObject.setBackgroundResource(
+                    R.color.settings_background_green
+            );
+        } else {
+            backgroundColor = "white";
+            scrollViewObject.setBackgroundResource(R.color.white);
+        }
+
         initSettings();
+        initBackgroundColor(scrollViewObject, backgroundColor);
         initListButton();
         initMapButton();
         initSettingsButton();
@@ -44,17 +73,13 @@ public class ContactSettingsActivity extends AppCompatActivity {
     }
 
     private void initSettings() {
-        String preferencesName = "MyContactListPreferences";
-
-        String sortBy = getSharedPreferences(
-                preferencesName,
+        SharedPreferences preferences = getSharedPreferences(
+                PREFERENCES_NAME,
                 Context.MODE_PRIVATE
-        ).getString("sortfield", "contactname");
+        );
 
-        String sortOrder = getSharedPreferences(
-                preferencesName,
-                Context.MODE_PRIVATE
-        ).getString("sortorder", "ASC");
+        String sortBy = preferences.getString("sortfield", "contactname");
+        String sortOrder = preferences.getString("sortorder", "ASC");
 
         RadioButton rbName = findViewById(R.id.radioName);
         RadioButton rbCity = findViewById(R.id.radioCity);
@@ -88,8 +113,7 @@ public class ContactSettingsActivity extends AppCompatActivity {
                 selectedSortBy = "birthday";
             }
 
-            getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
-                    .edit()
+            preferences.edit()
                     .putString("sortfield", selectedSortBy)
                     .apply();
         });
@@ -99,9 +123,52 @@ public class ContactSettingsActivity extends AppCompatActivity {
             String selectedSortOrder =
                     checkedId == R.id.radioAscending ? "ASC" : "DESC";
 
-            getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
-                    .edit()
+            preferences.edit()
                     .putString("sortorder", selectedSortOrder)
+                    .apply();
+        });
+    }
+
+    private void initBackgroundColor(
+            ScrollView scrollViewObject,
+            String selectedColor
+    ) {
+        RadioButton rbWhite = findViewById(R.id.radioBackgroundWhite);
+        RadioButton rbBlue = findViewById(R.id.radioBackgroundBlue);
+        RadioButton rbGreen = findViewById(R.id.radioBackgroundGreen);
+
+        if ("blue".equals(selectedColor)) {
+            rbBlue.setChecked(true);
+        } else if ("green".equals(selectedColor)) {
+            rbGreen.setChecked(true);
+        } else {
+            rbWhite.setChecked(true);
+        }
+
+        RadioGroup backgroundColorGroup =
+                findViewById(R.id.radioGroupBackgroundColor);
+
+        backgroundColorGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            String newColor;
+
+            if (checkedId == R.id.radioBackgroundBlue) {
+                newColor = "blue";
+                scrollViewObject.setBackgroundResource(
+                        R.color.settings_background_blue
+                );
+            } else if (checkedId == R.id.radioBackgroundGreen) {
+                newColor = "green";
+                scrollViewObject.setBackgroundResource(
+                        R.color.settings_background_green
+                );
+            } else {
+                newColor = "white";
+                scrollViewObject.setBackgroundResource(R.color.white);
+            }
+
+            getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("backgroundcolor", newColor)
                     .apply();
         });
     }

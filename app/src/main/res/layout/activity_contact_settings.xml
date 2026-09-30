@@ -7,117 +7,160 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ContactSettingsActivity">
+
+    <ScrollView
+        android:id="@+id/scrollViewSettings"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/white"
+        android:fillViewport="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/NavigationBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/textViewSortBy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sort Contacts By:" />
+
+            <RadioGroup
+                android:id="@+id/radioGroupSortBy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/radioName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="Name" />
+
+                <RadioButton
+                    android:id="@+id/radioCity"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="City" />
+
+                <RadioButton
+                    android:id="@+id/radioBirthday"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="Birthday" />
+            </RadioGroup>
+
+            <TextView
+                android:id="@+id/textViewSortOrder"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Sort Order:" />
+
+            <RadioGroup
+                android:id="@+id/radioGroupSortOrder"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/radioAscending"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="Ascending" />
+
+                <RadioButton
+                    android:id="@+id/radioDescending"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="Descending" />
+            </RadioGroup>
+
+            <TextView
+                android:id="@+id/textViewBackgroundColor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Background Color:" />
+
+            <RadioGroup
+                android:id="@+id/radioGroupBackgroundColor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/radioBackgroundWhite"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="White" />
+
+                <RadioButton
+                    android:id="@+id/radioBackgroundBlue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="Soft Blue" />
+
+                <RadioButton
+                    android:id="@+id/radioBackgroundGreen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="Soft Green" />
+            </RadioGroup>
+
+        </LinearLayout>
+    </ScrollView>
+
     <LinearLayout
         android:id="@+id/NavigationBar"
-        android:layout_width="409dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageButton
             android:id="@+id/imageButtonList"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:contentDescription="@string/button_to_display_a_list_of_contacts"
-            app:srcCompat="@drawable/contactlisticon"
-            tools:ignore="RedundantDescriptionCheck" />
+            app:srcCompat="@drawable/contactlisticon" />
 
         <ImageButton
             android:id="@+id/imageButtonMap"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:contentDescription="@string/button_for_maps"
-            app:srcCompat="@drawable/mapicon"
-            tools:ignore="ImageContrastCheck,RedundantDescriptionCheck" />
+            app:srcCompat="@drawable/mapicon" />
 
         <ImageButton
             android:id="@+id/imageButtonSettings"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:contentDescription="@string/button_for_settings"
-            app:srcCompat="@drawable/settingsicon"
-            tools:ignore="RedundantDescriptionCheck" />
+            app:srcCompat="@drawable/settingsicon" />
     </LinearLayout>
-
-    <TextView
-    android:id="@+id/textViewSortBy"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginTop="16dp"
-    android:text="Sort Contacts By:"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toTopOf="parent" />
-
-    <RadioGroup
-        android:id="@+id/radioGroupSortBy"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:orientation="vertical"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textViewSortBy">
-
-        <RadioButton
-            android:id="@+id/radioName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:text="Name" />
-
-        <RadioButton
-            android:id="@+id/radioCity"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:text="City" />
-
-        <RadioButton
-            android:id="@+id/radioBirthday"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:text="Birthday" />
-    </RadioGroup>
-
-    <TextView
-        android:id="@+id/textViewSortOrder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:text="Sort Order:"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/radioGroupSortBy" />
-
-    <RadioGroup
-        android:id="@+id/radioGroupSortOrder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:orientation="vertical"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textViewSortOrder">
-
-        <RadioButton
-            android:id="@+id/radioAscending"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:text="Ascending" />
-
-        <RadioButton
-            android:id="@+id/radioDescending"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:text="Descending" />
-    </RadioGroup>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

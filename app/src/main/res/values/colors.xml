@@ -10,5 +10,7 @@
     <color name="navbar_background">#1a1a48</color>
     <color name="toolbar_background">#BEBEBE</color>
     <color name="dialog_button_color">#26C6DA</color>
-    <color name="data_entry_background">#E3F2FD</color>
+    <color name="data_entry_background">#E3F2FD</color>\
+    <color name="settings_background_blue">#E3F2FD</color>
+    <color name="settings_background_green">#E8F5E9</color>
 </resources>
