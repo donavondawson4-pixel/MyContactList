@@ -4,6 +4,10 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class ContactDataSource {
     private static final String TABLE_CONTACT = "contact";
@@ -67,5 +71,62 @@ public class ContactDataSource {
         values.put("email", contact.getEmail());
         values.put("birthday", contact.getBirthdayMillis());
         return values;
+    }
+    public List<String> getContactList(String sortField, String sortOrder) {
+        String orderColumn;
+
+        if ("city".equalsIgnoreCase(sortField)) {
+            orderColumn = "city";
+        } else if ("birthday".equalsIgnoreCase(sortField)) {
+            orderColumn = "birthday";
+        } else {
+            orderColumn = "contactname";
+        }
+
+        String direction = "DESC".equalsIgnoreCase(sortOrder) ? "DESC" : "ASC";
+
+        String orderBy = orderColumn;
+        if (!"birthday".equals(orderColumn)) {
+            orderBy += " COLLATE NOCASE";
+        }
+        orderBy += " " + direction + ", contactname COLLATE NOCASE ASC";
+
+        Cursor cursor = database.query(
+                TABLE_CONTACT,
+                new String[]{"contactname", "city", "birthday"},
+                null,
+                null,
+                null,
+                null,
+                orderBy
+        );
+
+        List<String> contacts = new ArrayList<>();
+
+        try {
+            while (cursor.moveToNext()) {
+                String name = cursor.getString(0);
+                String city = cursor.getString(1);
+                long birthdayMillis = cursor.getLong(2);
+
+                StringBuilder row = new StringBuilder(name);
+
+                if (city != null && !city.trim().isEmpty()) {
+                    row.append("\n").append(city);
+                }
+
+                if (birthdayMillis > 0) {
+                    String birthday = DateFormat.getDateInstance(DateFormat.MEDIUM)
+                            .format(new Date(birthdayMillis));
+                    row.append("\nBirthday: ").append(birthday);
+                }
+
+                contacts.add(row.toString());
+            }
+        } finally {
+            cursor.close();
+        }
+
+        return contacts;
     }
 }
