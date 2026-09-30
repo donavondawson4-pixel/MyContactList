@@ -16,17 +16,26 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.FragmentManager;
 
+import android.widget.Toast;
+
+import android.text.Editable;
+import android.text.TextWatcher;
+
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity
         implements DatePickerDialog.SaveDateListener {
-
+    private Contact currentContact;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        currentContact = new Contact();
+        initTextChangedEvents();
+        initSaveButton();
+
 
         initListButton();
         initMapButton();
@@ -50,6 +59,7 @@ public class MainActivity extends AppCompatActivity
         birthday.setText(
                 DateFormat.format("MM/dd/yyyy", selectedTime)
         );
+        currentContact.setBirthdayMillis(selectedTime.getTimeInMillis());
     }
     private void initChangeDateButton() {
         Button changeDate =
@@ -142,5 +152,93 @@ public class MainActivity extends AppCompatActivity
             startActivity(intent);
         });
 
+    }
+    private void initTextChangedEvents() {
+        watchField(R.id.editName, currentContact::setContactName);
+        watchField(R.id.editAddress, currentContact::setStreetAddress);
+        watchField(R.id.editCity, currentContact::setCity);
+        watchField(R.id.editState, currentContact::setState);
+        watchField(R.id.editZipcode, currentContact::setZipCode);
+        watchField(R.id.editHome, currentContact::setPhoneNumber);
+        watchField(R.id.editCell, currentContact::setCellNumber);
+        watchField(R.id.editEMail, currentContact::setEmail);
+    }
+
+    private void watchField(int fieldId, ContactTextSetter setter) {
+        EditText field = findViewById(fieldId);
+
+        field.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(
+                    CharSequence text, int start, int count, int after
+            ) {
+            }
+
+            @Override
+            public void onTextChanged(
+                    CharSequence text, int start, int before, int count
+            ) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable text) {
+                setter.set(text.toString());
+            }
+        });
+    }
+
+    private interface ContactTextSetter {
+        void set(String value);
+    }
+    private void initSaveButton() {
+        Button saveButton = findViewById(R.id.ButtonSave);
+
+        saveButton.setOnClickListener(view -> {
+            if (currentContact.getContactName().trim().isEmpty()) {
+                Toast.makeText(
+                        MainActivity.this,
+                        "Enter a contact name first",
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
+
+            ContactDataSource dataSource =
+                    new ContactDataSource(MainActivity.this);
+            dataSource.open();
+
+            boolean wasSuccessful;
+
+            if (currentContact.getContactId() == -1) {
+                wasSuccessful = dataSource.insertContact(currentContact);
+
+                if (wasSuccessful) {
+                    currentContact.setContactId(dataSource.getLastContactId());
+                }
+            } else {
+                wasSuccessful = dataSource.updateContact(currentContact);
+            }
+
+            dataSource.close();
+
+            if (wasSuccessful) {
+                ToggleButton editToggle =
+                        findViewById(R.id.toggleButtonEdit);
+                editToggle.setChecked(false);
+                setForEditing(false);
+
+                Toast.makeText(
+                        MainActivity.this,
+                        "Contact saved",
+                        Toast.LENGTH_SHORT
+                ).show();
+            } else {
+                Toast.makeText(
+                        MainActivity.this,
+                        "Unable to save contact",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+        });
     }
 }
