@@ -8,12 +8,45 @@
     android:layout_height="match_parent"
     tools:context=".ContactListActivity">
 
-    <ListView
-        android:id="@+id/listViewContacts"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/contactListToolbar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Switch
+            android:id="@+id/switchDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:text="Delete:"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Button
+            android:id="@+id/buttonAddContact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:text="NEW"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvContacts"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginTop="8dp"
         android:padding="8dp"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/contactListToolbar"
         app:layout_constraintBottom_toTopOf="@id/navigationBar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -25,10 +58,10 @@
         android:text="No contacts saved yet."
         android:textSize="18sp"
         android:visibility="gone"
-        app:layout_constraintTop_toTopOf="@id/listViewContacts"
-        app:layout_constraintBottom_toBottomOf="@id/listViewContacts"
-        app:layout_constraintStart_toStartOf="@id/listViewContacts"
-        app:layout_constraintEnd_toEndOf="@id/listViewContacts" />
+        app:layout_constraintTop_toTopOf="@id/rvContacts"
+        app:layout_constraintBottom_toBottomOf="@id/rvContacts"
+        app:layout_constraintStart_toStartOf="@id/rvContacts"
+        app:layout_constraintEnd_toEndOf="@id/rvContacts" />
 
     <LinearLayout
         android:id="@+id/navigationBar"
@@ -63,6 +96,7 @@
             android:layout_weight="1"
             android:contentDescription="@string/button_for_settings"
             app:srcCompat="@drawable/settingsicon" />
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

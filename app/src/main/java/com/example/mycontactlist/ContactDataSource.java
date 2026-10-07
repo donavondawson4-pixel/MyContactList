@@ -129,4 +129,99 @@ public class ContactDataSource {
 
         return contacts;
     }
+    public ArrayList<String> getContactName() {
+        ArrayList<String> contactNames = new ArrayList<>();
+
+        try {
+            String query = "Select contactname from contact";
+            Cursor cursor = database.rawQuery(query, null);
+
+            cursor.moveToFirst();
+
+            while (!cursor.isAfterLast()) {
+                contactNames.add(cursor.getString(0));
+                cursor.moveToNext();
+            }
+
+            cursor.close();
+        }
+        catch (Exception e) {
+            contactNames = new ArrayList<>();
+        }
+
+        return contactNames;
+    }
+    public ArrayList<Contact> getContacts() {
+        ArrayList<Contact> contacts = new ArrayList<>();
+
+        Cursor cursor = database.rawQuery(
+                "SELECT * FROM " + TABLE_CONTACT,
+                null
+        );
+
+        try {
+            while (cursor.moveToNext()) {
+                Contact newContact = new Contact();
+
+                newContact.setContactId(cursor.getInt(0));
+                newContact.setContactName(cursor.getString(1));
+                newContact.setStreetAddress(cursor.getString(2));
+                newContact.setCity(cursor.getString(3));
+                newContact.setState(cursor.getString(4));
+                newContact.setZipCode(cursor.getString(5));
+                newContact.setPhoneNumber(cursor.getString(6));
+                newContact.setCellNumber(cursor.getString(7));
+                newContact.setEmail(cursor.getString(8));
+                newContact.setBirthdayMillis(cursor.getLong(9));
+
+                contacts.add(newContact);
+            }
+        } finally {
+            cursor.close();
+        }
+
+        return contacts;
+    }
+    public Contact getSpecificContact(int contactId) {
+        Contact contact = new Contact();
+
+        Cursor cursor = database.rawQuery(
+                "SELECT * FROM " + TABLE_CONTACT + " WHERE _id = ?",
+                new String[]{String.valueOf(contactId)}
+        );
+
+        try {
+            if (cursor.moveToFirst()) {
+                contact.setContactId(cursor.getInt(0));
+                contact.setContactName(cursor.getString(1));
+                contact.setStreetAddress(cursor.getString(2));
+                contact.setCity(cursor.getString(3));
+                contact.setState(cursor.getString(4));
+                contact.setZipCode(cursor.getString(5));
+                contact.setPhoneNumber(cursor.getString(6));
+                contact.setCellNumber(cursor.getString(7));
+                contact.setEmail(cursor.getString(8));
+                contact.setBirthdayMillis(cursor.getLong(9));
+            }
+        } finally {
+            cursor.close();
+        }
+
+        return contact;
+    }
+    public boolean deleteContact(int contactId) {
+        boolean didDelete = false;
+
+        try {
+            didDelete = database.delete(
+                    TABLE_CONTACT,
+                    "_id = ?",
+                    new String[]{String.valueOf(contactId)}
+            ) > 0;
+        } catch (Exception e) {
+            // Return value remains false if delete fails
+        }
+
+        return didDelete;
+    }
 }

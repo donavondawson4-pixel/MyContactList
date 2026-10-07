@@ -32,9 +32,34 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        currentContact = new Contact();
+        int contactId = getIntent().getIntExtra("contactID", -1);
+
+        if (contactId == -1) {
+            currentContact = new Contact();
+        } else {
+            ContactDataSource dataSource =
+                    new ContactDataSource(this);
+
+            try {
+                dataSource.open();
+                currentContact =
+                        dataSource.getSpecificContact(contactId);
+            } catch (Exception e) {
+                currentContact = new Contact();
+
+                Toast.makeText(
+                        this,
+                        "Could not load contact.",
+                        Toast.LENGTH_LONG
+                ).show();
+            } finally {
+                dataSource.close();
+            }
+        }
+
         initTextChangedEvents();
         initSaveButton();
+        displayContact();
 
 
         initListButton();
@@ -240,5 +265,43 @@ public class MainActivity extends AppCompatActivity
                 ).show();
             }
         });
+    }
+    private void displayContact() {
+
+        EditText editName = findViewById(R.id.editName);
+        EditText editAddress = findViewById(R.id.editAddress);
+        EditText editCity = findViewById(R.id.editCity);
+        EditText editState = findViewById(R.id.editState);
+        EditText editZipcode = findViewById(R.id.editZipcode);
+        EditText editHome = findViewById(R.id.editHome);
+        EditText editCell = findViewById(R.id.editCell);
+        EditText editEMail = findViewById(R.id.editEMail);
+        TextView birthday = findViewById(R.id.textBirthday);
+
+        editName.setText(currentContact.getContactName());
+        editAddress.setText(currentContact.getStreetAddress());
+        editCity.setText(currentContact.getCity());
+        editState.setText(currentContact.getState());
+        editZipcode.setText(currentContact.getZipCode());
+        editHome.setText(currentContact.getPhoneNumber());
+        editCell.setText(currentContact.getCellNumber());
+        editEMail.setText(currentContact.getEmail());
+
+        if (currentContact.getBirthdayMillis() > 0) {
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(
+                    currentContact.getBirthdayMillis()
+            );
+
+            birthday.setText(
+                    DateFormat.format(
+                            "MM/dd/yyyy",
+                            calendar
+                    )
+            );
+        } else {
+            birthday.setText("");
+        }
     }
 }

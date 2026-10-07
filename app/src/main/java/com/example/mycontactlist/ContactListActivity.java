@@ -5,9 +5,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
-import android.widget.ListView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,13 +16,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
+import android.widget.Button;
 import java.util.ArrayList;
+import android.widget.Switch;
 
 public class ContactListActivity extends AppCompatActivity {
 
-    private ListView listViewContacts;
+    private RecyclerView recyclerViewContacts;
+
+    private ArrayList<Contact> contacts;
     private TextView textViewNoContacts;
+
+    private ContactAdapter contactAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,12 +35,14 @@ public class ContactListActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_contact_list);
 
-        listViewContacts = findViewById(R.id.listViewContacts);
+        recyclerViewContacts = findViewById(R.id.rvContacts);
         textViewNoContacts = findViewById(R.id.textViewNoContacts);
 
         initListButton();
         initMapButton();
         initSettingsButton();
+        initAddContactButton();
+        initDeleteSwitch();
 
         ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.main),
@@ -59,41 +66,145 @@ public class ContactListActivity extends AppCompatActivity {
         super.onResume();
         loadContacts();
     }
+    private void initAddContactButton() {
+        Button newContact = findViewById(R.id.buttonAddContact);
+
+        newContact.setOnClickListener(view -> {
+            Intent intent = new Intent(
+                    ContactListActivity.this,
+                    MainActivity.class
+            );
+
+            startActivity(intent);
+        });
+    }
 
     private void loadContacts() {
-        SharedPreferences preferences = getSharedPreferences(
-                "MyContactListPreferences",
-                Context.MODE_PRIVATE
-        );
-
-        String sortField = preferences.getString("sortfield", "contactname");
-        String sortOrder = preferences.getString("sortorder", "ASC");
 
         ContactDataSource dataSource = new ContactDataSource(this);
-        ArrayList<String> contacts = new ArrayList<>();
 
         try {
             dataSource.open();
-            contacts.addAll(dataSource.getContactList(sortField, sortOrder));
+            contacts = dataSource.getContacts();
         } catch (Exception e) {
-            Toast.makeText(this, "Could not load contacts.", Toast.LENGTH_LONG)
-                    .show();
+            contacts = new ArrayList<>();
+
+            Toast.makeText(
+                    this,
+                    "Could not load contacts.",
+                    Toast.LENGTH_LONG
+            ).show();
         } finally {
             dataSource.close();
         }
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_list_item_1,
-                contacts
+        RecyclerView.LayoutManager layoutManager =
+                new LinearLayoutManager(this);
+
+        recyclerViewContacts.setLayoutManager(layoutManager);
+
+        contactAdapter =
+                new ContactAdapter(contacts);
+
+        Switch deleteSwitch =
+                findViewById(R.id.switchDelete);
+
+        contactAdapter.setDelete(
+                deleteSwitch.isChecked()
         );
-        listViewContacts.setAdapter(adapter);
 
-        boolean isEmpty = contacts.isEmpty();
-        textViewNoContacts.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-        listViewContacts.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        contactAdapter.setOnItemClickListener(view -> {
+
+            RecyclerView.ViewHolder viewHolder =
+                    (RecyclerView.ViewHolder) view.getTag();
+
+            int position =
+                    viewHolder.getAdapterPosition();
+
+            if (position != RecyclerView.NO_POSITION) {
+
+                int contactId =
+                        contacts.get(position).getContactId();
+
+                Intent intent = new Intent(
+                        ContactListActivity.this,
+                        MainActivity.class
+                );
+
+                intent.putExtra(
+                        "contactID",
+                        contactId
+                );
+
+                startActivity(intent);
+            }
+        });
+        contactAdapter.setOnDeleteClickListener(view -> {
+
+            RecyclerView.ViewHolder viewHolder =
+                    (RecyclerView.ViewHolder) view.getTag();
+
+            int position =
+                    viewHolder.getAdapterPosition();
+
+            if (position != RecyclerView.NO_POSITION) {
+
+                int contactId =
+                        contacts.get(position).getContactId();
+
+                ContactDataSource deleteDataSource =
+                        new ContactDataSource(
+                                ContactListActivity.this
+                        );
+
+                boolean wasDeleted = false;
+
+                try {
+                    deleteDataSource.open();
+
+                    wasDeleted =
+                            deleteDataSource.deleteContact(contactId);
+
+                } catch (Exception e) {
+
+                    Toast.makeText(
+                            ContactListActivity.this,
+                            "Could not delete contact.",
+                            Toast.LENGTH_LONG
+                    ).show();
+
+                } finally {
+                    deleteDataSource.close();
+                }
+
+                if (wasDeleted) {
+
+                    Toast.makeText(
+                            ContactListActivity.this,
+                            "Contact deleted",
+                            Toast.LENGTH_SHORT
+                    ).show();
+
+                    loadContacts();
+                }
+            }
+        });
+
+        recyclerViewContacts.setAdapter(
+                contactAdapter
+        );
+
+        boolean isEmpty =
+                contacts.isEmpty();
+
+        textViewNoContacts.setVisibility(
+                isEmpty ? View.VISIBLE : View.GONE
+        );
+
+        recyclerViewContacts.setVisibility(
+                isEmpty ? View.GONE : View.VISIBLE
+        );
     }
-
     private void initListButton() {
         ImageButton ibList = findViewById(R.id.imageButtonList);
         ibList.setOnClickListener(view -> loadContacts());
@@ -121,5 +232,19 @@ public class ContactListActivity extends AppCompatActivity {
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent);
         });
+    }
+    private void initDeleteSwitch() {
+
+        Switch deleteSwitch =
+                findViewById(R.id.switchDelete);
+
+        deleteSwitch.setOnCheckedChangeListener(
+                (buttonView, isChecked) -> {
+
+                    if (contactAdapter != null) {
+                        contactAdapter.setDelete(isChecked);
+                    }
+                }
+        );
     }
 }
