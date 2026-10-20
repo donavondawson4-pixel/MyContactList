@@ -156,7 +156,7 @@ public class MainActivity extends AppCompatActivity
         ibMap.setOnClickListener(view -> {
             Intent intent = new Intent(
                     MainActivity.this,
-                    ContactActivity.class
+                    ContactMapActivity.class
             );
 
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
