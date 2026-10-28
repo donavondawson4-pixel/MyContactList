@@ -264,6 +264,30 @@
                 android:text="@string/change"
                 app:layout_constraintBaseline_toBaselineOf="@id/textBirthday"
                 app:layout_constraintEnd_toEndOf="parent" />
+
+            <ImageView
+                android:id="@+id/imageContactPhoto"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_marginTop="16dp"
+                android:contentDescription="Contact photo"
+                android:scaleType="centerCrop"
+                android:visibility="visible"
+                app:layout_constraintTop_toBottomOf="@id/textBirthday"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/buttonTakePhoto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Take Photo"
+                app:layout_constraintTop_toBottomOf="@id/imageContactPhoto"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -12,6 +12,10 @@ public class Contact {
     private String email = "";
     private long birthdayMillis = System.currentTimeMillis();
 
+
+    private byte[] contactPhoto;
+
+
     public int getContactId() {
         return contactId;
     }
@@ -91,4 +95,13 @@ public class Contact {
     public void setBirthdayMillis(long birthdayMillis) {
         this.birthdayMillis = birthdayMillis;
     }
+
+    public byte[] getContactPhoto() {
+        return contactPhoto;
+    }
+
+    public void setContactPhoto(byte[] contactPhoto) {
+        this.contactPhoto = contactPhoto;
+    }
+
 }

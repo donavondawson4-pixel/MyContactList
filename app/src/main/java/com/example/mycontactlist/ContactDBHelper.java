@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 public class ContactDBHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "mycontacts.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     private static final String CREATE_CONTACT_TABLE =
             "CREATE TABLE contact (" +
@@ -19,7 +19,8 @@ public class ContactDBHelper extends SQLiteOpenHelper {
                     "phonenumber TEXT, " +
                     "cellnumber TEXT, " +
                     "email TEXT, " +
-                    "birthday INTEGER)";
+                    "birthday INTEGER," +
+                    "contactphoto BLOB)";
 
     public ContactDBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -30,13 +31,18 @@ public class ContactDBHelper extends SQLiteOpenHelper {
         database.execSQL(CREATE_CONTACT_TABLE);
     }
 
+
     @Override
     public void onUpgrade(
             SQLiteDatabase database,
             int oldVersion,
             int newVersion
     ) {
-        database.execSQL("DROP TABLE IF EXISTS contact");
-        onCreate(database);
+        if (oldVersion < 2) {
+            database.execSQL(
+                    "ALTER TABLE contact ADD COLUMN contactphoto BLOB"
+            );
+        }
     }
+
 }

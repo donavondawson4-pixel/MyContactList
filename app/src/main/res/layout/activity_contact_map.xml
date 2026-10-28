@@ -10,4 +10,21 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <TextView
+        android:id="@+id/textHeading"
+        android:layout_width="wrap_content"
+        android:layout_height="80dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="24dp"
+        android:background="#DDFFFFFF"
+        android:contentDescription="Compass direction"
+        android:paddingStart="20dp"
+        android:paddingTop="32dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="8dp"
+        android:text="N"
+        android:textColor="#000000"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
 </FrameLayout>

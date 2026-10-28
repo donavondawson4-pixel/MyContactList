@@ -27,8 +27,33 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.Manifest;
+
+
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.widget.TextView;
+
+
+
 public class ContactMapActivity extends AppCompatActivity
-        implements OnMapReadyCallback {
+        implements OnMapReadyCallback, SensorEventListener {
+
+    private SensorManager sensorManager;
+
+    private Sensor accelerometer;
+
+    private Sensor magnetometer;
+
+    private TextView textHeading;
+
+    private float[] gravityValues;
+
+    private float[] magneticValues;
+
 
     private GoogleMap gMap;
     private FusedLocationProviderClient fusedLocationClient;
@@ -47,6 +72,26 @@ public class ContactMapActivity extends AppCompatActivity
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_contact_map);
 
+        textHeading = findViewById(R.id.textHeading);
+
+        sensorManager = (SensorManager)
+                getSystemService(Context.SENSOR_SERVICE);
+
+        if (sensorManager != null) {
+            accelerometer = sensorManager.getDefaultSensor(
+                    Sensor.TYPE_ACCELEROMETER
+            );
+
+            magnetometer = sensorManager.getDefaultSensor(
+                    Sensor.TYPE_MAGNETIC_FIELD
+            );
+        }
+
+        if (accelerometer == null || magnetometer == null) {
+            textHeading.setText("Compass unavailable");
+        }
+
+
         fusedLocationClient =
                 LocationServices.getFusedLocationProviderClient(this);
 
@@ -58,6 +103,113 @@ public class ContactMapActivity extends AppCompatActivity
             mapFragment.getMapAsync(this);
         }
     }
+
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (sensorManager != null) {
+            if (accelerometer != null) {
+                sensorManager.registerListener(
+                        this,
+                        accelerometer,
+                        SensorManager.SENSOR_DELAY_UI
+                );
+            }
+
+            if (magnetometer != null) {
+                sensorManager.registerListener(
+                        this,
+                        magnetometer,
+                        SensorManager.SENSOR_DELAY_UI
+                );
+            }
+        }
+    }
+
+    @Override
+    protected void onPause(){
+        if (sensorManager !=null) {
+            sensorManager.unregisterListener(this);
+        }
+
+        super.onPause();
+    }
+
+    private String getDirection(float degrees) {
+        if (degrees >= 337.5 || degrees < 22.5) {
+            return "N";
+        } else if (degrees < 67.5) {
+            return "NE";
+        } else if (degrees < 112.5) {
+            return "E";
+            } else if (degrees < 157.5) {
+            return "SE";
+        } else if (degrees < 202.5) {
+            return "S";
+        } else if (degrees < 247.5) {
+            return "SW";
+        } else if (degrees < 292.5) {
+            return "W";
+        } else {
+            return "NW";
+        }
+    }
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            gravityValues = event.values.clone();
+        }
+        if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            magneticValues = event.values.clone();
+        }
+        if (gravityValues == null || magneticValues == null) {
+            return;
+        }
+        float[] rotationMatrix = new float[9];
+        float[] inclinationMatrix = new float[9];
+
+        boolean success = SensorManager.getRotationMatrix(
+                rotationMatrix,
+                inclinationMatrix,
+                gravityValues,
+                magneticValues
+        );
+
+        if (!success) {
+            return;
+        }
+        float[] orientation = new float[3];
+
+        SensorManager.getOrientation(
+                rotationMatrix,
+                orientation
+        );
+
+        float azimuth = (float) Math.toDegrees(orientation[0]);
+        azimuth = (azimuth + 360) % 360;
+
+        String direction = getDirection(azimuth);
+        textHeading.setText(
+                String.format(
+                        java.util.Locale.US,
+                        "%s %.0f°",
+                        direction,
+                        azimuth
+                )
+        );
+
+    }
+
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {

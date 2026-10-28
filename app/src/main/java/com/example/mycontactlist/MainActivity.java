@@ -22,10 +22,73 @@ import android.text.Editable;
 import android.text.TextWatcher;
 
 import java.util.Calendar;
+import android.content.Intent;
+
+
+import android.net.Uri;
+import android.content.ActivityNotFoundException;
+import android.widget.EditText;
+import android.view.View;
+
+import android.content.Intent;
+
+
+import android.graphics.Bitmap;
+import android.provider.MediaStore;
+import android.widget.ImageView;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
+
 
 public class MainActivity extends AppCompatActivity
         implements DatePickerDialog.SaveDateListener {
     private Contact currentContact;
+    private final ActivityResultLauncher<Intent> cameraLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == RESULT_OK
+                                && result.getData() != null) {
+                            Bundle extras = result.getData().getExtras();
+
+                            if (extras != null) {
+                                Bitmap photo;
+                                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                                    photo = extras.getParcelable(
+                                            "data",
+                                            Bitmap.class
+                                    );
+                                } else {
+                                    photo = extras.getParcelable("data");
+                                }
+
+
+                                if (photo != null) {
+                                    ImageView imageContactPhoto =
+                                            findViewById(R.id.imageContactPhoto);
+
+                                    imageContactPhoto.setImageBitmap(photo);
+
+                                    java.io.ByteArrayOutputStream stream =
+                                            new java.io.ByteArrayOutputStream();
+
+                                    photo.compress(
+                                            Bitmap.CompressFormat.JPEG,
+                                            80,
+                                            stream
+                                    );
+
+                                    currentContact.setContactPhoto(
+                                            stream.toByteArray()
+                                    );
+                                }
+
+                            }
+                        }
+                    }
+            );
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -68,6 +131,9 @@ public class MainActivity extends AppCompatActivity
         initToggleButton();
         setForEditing(false);
         initChangeDateButton();
+        initCallFunction();
+        initCameraButton();
+
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -86,6 +152,23 @@ public class MainActivity extends AppCompatActivity
         );
         currentContact.setBirthdayMillis(selectedTime.getTimeInMillis());
     }
+    private void initCameraButton() {
+        Button takePhoto = findViewById(R.id.buttonTakePhoto);
+        takePhoto.setOnClickListener(view -> {
+            Intent cameraIntent = new Intent(
+                    MediaStore.ACTION_IMAGE_CAPTURE
+            );
+            try {
+                cameraLauncher.launch(cameraIntent);
+            } catch (android.content.ActivityNotFoundException e) {
+                Toast.makeText(
+                        this,
+                        "Camera not available",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+        });
+    }
     private void initChangeDateButton() {
         Button changeDate =
                 findViewById(R.id.btnBirthday);
@@ -101,6 +184,63 @@ public class MainActivity extends AppCompatActivity
                     dialog.show(fm, "DatePick");
                 });
     }
+    private void initCallFunction() {
+        EditText editHome = findViewById(R.id.editHome);
+        EditText editCell = findViewById(R.id.editCell);
+
+        editHome.setLongClickable(true);
+        editCell.setLongClickable(true);
+
+        editHome.setTextIsSelectable(false);
+        editCell.setTextIsSelectable(false);
+
+
+        editHome.setOnLongClickListener(view -> {
+            Toast.makeText(
+                    MainActivity.this,
+                    "Opening dialer",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            openDialer(editHome.getText().toString());
+            return true;
+        });
+
+        editCell.setOnLongClickListener(view -> {
+            openDialer(editCell.getText().toString());
+            return true;
+        });
+    }
+
+
+    private void openDialer(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            Toast.makeText(
+                    this,
+                    "No phone number available",
+                    Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        Intent intent = new Intent(
+                Intent.ACTION_DIAL,
+                Uri.fromParts("tel", phoneNumber.trim(), null)
+        );
+
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(
+                    this,
+                    "No dialer app installed",
+                    Toast.LENGTH_LONG
+            ).show();
+        }
+    }
+
+
+
     private void initToggleButton() {
         final ToggleButton editToggle =
                 findViewById(R.id.toggleButtonEdit);
@@ -125,15 +265,32 @@ public class MainActivity extends AppCompatActivity
         editCity.setEnabled(enabled);
         editState.setEnabled(enabled);
         editZipcode.setEnabled(enabled);
-        editHome.setEnabled(enabled);
-        editCell.setEnabled(enabled);
+        editHome.setEnabled(true);
+        editCell.setEnabled(true);
+
+        editHome.setShowSoftInputOnFocus(enabled);
+        editCell.setShowSoftInputOnFocus(enabled);
+
         editEMail.setEnabled(enabled);
 
         buttonBirthday.setEnabled(enabled);
         buttonSave.setEnabled(enabled);
 
         if (enabled) {
+            editHome.setInputType(
+                    android.text.InputType.TYPE_CLASS_PHONE
+            );
+            editCell.setInputType(
+                    android.text.InputType.TYPE_CLASS_PHONE
+            );
             editName.requestFocus();
+        } else {
+            editHome.setInputType(
+                    android.text.InputType.TYPE_NULL
+            );
+            editCell.setInputType(
+                    android.text.InputType.TYPE_NULL
+            );
         }
     }
     private void initListButton() {
@@ -286,6 +443,22 @@ public class MainActivity extends AppCompatActivity
         editHome.setText(currentContact.getPhoneNumber());
         editCell.setText(currentContact.getCellNumber());
         editEMail.setText(currentContact.getEmail());
+
+        ImageView imageContactPhoto =
+                findViewById(R.id.imageContactPhoto);
+
+        byte[] photoData = currentContact.getContactPhoto();
+
+        if (photoData != null && photoData.length > 0) {
+            Bitmap photo = android.graphics.BitmapFactory.decodeByteArray(
+                    photoData,
+                    0,
+                    photoData.length
+            );
+            imageContactPhoto.setImageBitmap(photo);
+        } else {
+            imageContactPhoto.setImageDrawable(null);
+        }
 
         if (currentContact.getBirthdayMillis() > 0) {
 

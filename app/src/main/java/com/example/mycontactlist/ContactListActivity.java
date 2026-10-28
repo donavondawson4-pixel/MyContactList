@@ -1,13 +1,16 @@
+
 package com.example.mycontactlist;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,27 +19,60 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import android.widget.Button;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.ArrayList;
-import android.widget.Switch;
 
 public class ContactListActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewContacts;
-
     private ArrayList<Contact> contacts;
     private TextView textViewNoContacts;
-
+    private TextView textBatteryLevel;
     private ContactAdapter contactAdapter;
+
+    // Chapter 8: Battery monitoring
+    private boolean batteryReceiverRegistered = false;
+
+    private final BroadcastReceiver batteryReceiver =
+            new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+
+                    int batteryLevel = intent.getIntExtra(
+                            BatteryManager.EXTRA_LEVEL, -1
+                    );
+
+                    int levelScale = intent.getIntExtra(
+                            BatteryManager.EXTRA_SCALE, -1
+                    );
+
+                    if (batteryLevel >= 0 && levelScale > 0) {
+
+                        int batteryPercent = Math.round(
+                                batteryLevel * 100f / levelScale
+                        );
+
+                        textBatteryLevel.setText(
+                                batteryPercent + "%"
+                        );
+                    } else {
+                        textBatteryLevel.setText("--%");
+                    }
+                }
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_contact_list);
 
         recyclerViewContacts = findViewById(R.id.rvContacts);
         textViewNoContacts = findViewById(R.id.textViewNoContacts);
+        textBatteryLevel = findViewById(R.id.textBatteryLevel);
 
         initListButton();
         initMapButton();
@@ -50,15 +86,44 @@ public class ContactListActivity extends AppCompatActivity {
                     Insets systemBars = insets.getInsets(
                             WindowInsetsCompat.Type.systemBars()
                     );
+
                     view.setPadding(
                             systemBars.left,
                             systemBars.top,
                             systemBars.right,
                             systemBars.bottom
                     );
+
                     return insets;
                 }
         );
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        // Listen for battery changes while this screen is active.
+        IntentFilter filter = new IntentFilter(
+                Intent.ACTION_BATTERY_CHANGED
+        );
+
+        if (!batteryReceiverRegistered) {
+            registerReceiver(batteryReceiver, filter);
+            batteryReceiverRegistered = true;
+        }
+    }
+
+    @Override
+    protected void onStop() {
+
+        // Stop listening when this screen is no longer visible.
+        if (batteryReceiverRegistered) {
+            unregisterReceiver(batteryReceiver);
+            batteryReceiverRegistered = false;
+        }
+
+        super.onStop();
     }
 
     @Override
@@ -66,10 +131,12 @@ public class ContactListActivity extends AppCompatActivity {
         super.onResume();
         loadContacts();
     }
+
     private void initAddContactButton() {
         Button newContact = findViewById(R.id.buttonAddContact);
 
         newContact.setOnClickListener(view -> {
+
             Intent intent = new Intent(
                     ContactListActivity.this,
                     MainActivity.class
@@ -81,12 +148,15 @@ public class ContactListActivity extends AppCompatActivity {
 
     private void loadContacts() {
 
-        ContactDataSource dataSource = new ContactDataSource(this);
+        ContactDataSource dataSource =
+                new ContactDataSource(this);
 
         try {
             dataSource.open();
             contacts = dataSource.getContacts();
+
         } catch (Exception e) {
+
             contacts = new ArrayList<>();
 
             Toast.makeText(
@@ -94,6 +164,7 @@ public class ContactListActivity extends AppCompatActivity {
                     "Could not load contacts.",
                     Toast.LENGTH_LONG
             ).show();
+
         } finally {
             dataSource.close();
         }
@@ -103,8 +174,7 @@ public class ContactListActivity extends AppCompatActivity {
 
         recyclerViewContacts.setLayoutManager(layoutManager);
 
-        contactAdapter =
-                new ContactAdapter(contacts);
+        contactAdapter = new ContactAdapter(contacts);
 
         Switch deleteSwitch =
                 findViewById(R.id.switchDelete);
@@ -118,8 +188,7 @@ public class ContactListActivity extends AppCompatActivity {
             RecyclerView.ViewHolder viewHolder =
                     (RecyclerView.ViewHolder) view.getTag();
 
-            int position =
-                    viewHolder.getAdapterPosition();
+            int position = viewHolder.getAdapterPosition();
 
             if (position != RecyclerView.NO_POSITION) {
 
@@ -131,21 +200,18 @@ public class ContactListActivity extends AppCompatActivity {
                         MainActivity.class
                 );
 
-                intent.putExtra(
-                        "contactID",
-                        contactId
-                );
+                intent.putExtra("contactID", contactId);
 
                 startActivity(intent);
             }
         });
+
         contactAdapter.setOnDeleteClickListener(view -> {
 
             RecyclerView.ViewHolder viewHolder =
                     (RecyclerView.ViewHolder) view.getTag();
 
-            int position =
-                    viewHolder.getAdapterPosition();
+            int position = viewHolder.getAdapterPosition();
 
             if (position != RecyclerView.NO_POSITION) {
 
@@ -190,12 +256,9 @@ public class ContactListActivity extends AppCompatActivity {
             }
         });
 
-        recyclerViewContacts.setAdapter(
-                contactAdapter
-        );
+        recyclerViewContacts.setAdapter(contactAdapter);
 
-        boolean isEmpty =
-                contacts.isEmpty();
+        boolean isEmpty = contacts.isEmpty();
 
         textViewNoContacts.setVisibility(
                 isEmpty ? View.VISIBLE : View.GONE
@@ -205,34 +268,57 @@ public class ContactListActivity extends AppCompatActivity {
                 isEmpty ? View.GONE : View.VISIBLE
         );
     }
+
     private void initListButton() {
-        ImageButton ibList = findViewById(R.id.imageButtonList);
-        ibList.setOnClickListener(view -> loadContacts());
+
+        ImageButton ibList =
+                findViewById(R.id.imageButtonList);
+
+        ibList.setOnClickListener(
+                view -> loadContacts()
+        );
     }
 
     private void initMapButton() {
-        ImageButton ibMap = findViewById(R.id.imageButtonMap);
+
+        ImageButton ibMap =
+                findViewById(R.id.imageButtonMap);
+
         ibMap.setOnClickListener(view -> {
+
             Intent intent = new Intent(
                     ContactListActivity.this,
                     ContactActivity.class
             );
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            intent.setFlags(
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+            );
+
             startActivity(intent);
         });
     }
 
     private void initSettingsButton() {
-        ImageButton ibSettings = findViewById(R.id.imageButtonSettings);
+
+        ImageButton ibSettings =
+                findViewById(R.id.imageButtonSettings);
+
         ibSettings.setOnClickListener(view -> {
+
             Intent intent = new Intent(
                     ContactListActivity.this,
                     ContactSettingsActivity.class
             );
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            intent.setFlags(
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+            );
+
             startActivity(intent);
         });
     }
+
     private void initDeleteSwitch() {
 
         Switch deleteSwitch =

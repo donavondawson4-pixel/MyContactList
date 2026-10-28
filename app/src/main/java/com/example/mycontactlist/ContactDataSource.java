@@ -70,7 +70,9 @@ public class ContactDataSource {
         values.put("cellnumber", contact.getCellNumber());
         values.put("email", contact.getEmail());
         values.put("birthday", contact.getBirthdayMillis());
+        values.put("contactphoto", contact.getContactPhoto());
         return values;
+
     }
     public List<String> getContactList(String sortField, String sortOrder) {
         String orderColumn;
@@ -202,6 +204,11 @@ public class ContactDataSource {
                 contact.setCellNumber(cursor.getString(7));
                 contact.setEmail(cursor.getString(8));
                 contact.setBirthdayMillis(cursor.getLong(9));
+                int photoIndex = cursor.getColumnIndex("contactphoto");
+
+                if (photoIndex >=0 && !cursor.isNull(photoIndex)) {
+                    contact.setContactPhoto(cursor.getBlob(photoIndex));
+                }
             }
         } finally {
             cursor.close();
