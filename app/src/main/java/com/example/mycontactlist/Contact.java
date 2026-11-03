@@ -1,5 +1,9 @@
 package com.example.mycontactlist;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import java.io.ByteArrayOutputStream;
+
 public class Contact {
     private int contactId = -1;
     private String contactName = "";
@@ -11,6 +15,7 @@ public class Contact {
     private String cellNumber = "";
     private String email = "";
     private long birthdayMillis = System.currentTimeMillis();
+
 
 
     private byte[] contactPhoto;
@@ -103,5 +108,33 @@ public class Contact {
     public void setContactPhoto(byte[] contactPhoto) {
         this.contactPhoto = contactPhoto;
     }
+
+
+    public Bitmap getPicture() {
+        if (contactPhoto == null || contactPhoto.length == 0) {
+            return null;
+        }
+
+        return BitmapFactory.decodeByteArray(
+                contactPhoto, 0, contactPhoto.length);
+    }
+
+    public void setPicture(Bitmap picture) {
+        if (picture == null) {
+            contactPhoto = null;
+            return;
+        }
+
+        ByteArrayOutputStream stream =
+                new ByteArrayOutputStream();
+
+        picture.compress(
+                Bitmap.CompressFormat.JPEG,
+                90,
+                stream);
+
+        contactPhoto = stream.toByteArray();
+    }
+
 
 }

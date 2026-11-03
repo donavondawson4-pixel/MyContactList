@@ -24,6 +24,16 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
+
+import android.util.Log;
+import androidx.appcompat.app.AlertDialog;
+import com.google.android.gms.ads.MobileAds;
+
+
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.AdRequest;
+
+
 public class ContactListActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewContacts;
@@ -32,7 +42,7 @@ public class ContactListActivity extends AppCompatActivity {
     private TextView textBatteryLevel;
     private ContactAdapter contactAdapter;
 
-    // Chapter 8: Battery monitoring
+
     private boolean batteryReceiverRegistered = false;
 
     private final BroadcastReceiver batteryReceiver =
@@ -70,6 +80,21 @@ public class ContactListActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_contact_list);
 
+        AdView adView = findViewById(R.id.adView);
+
+        AdRequest adRequest =
+                new AdRequest.Builder().build();
+
+        adView.loadAd(adRequest);
+
+
+        new Thread(() -> {
+            MobileAds.initialize(this, initializationStatus -> {
+                Log.d("MyContactList", "AdMob initialized");
+            });
+        }).start();
+
+
         recyclerViewContacts = findViewById(R.id.rvContacts);
         textViewNoContacts = findViewById(R.id.textViewNoContacts);
         textBatteryLevel = findViewById(R.id.textBatteryLevel);
@@ -103,7 +128,7 @@ public class ContactListActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-        // Listen for battery changes while this screen is active.
+
         IntentFilter filter = new IntentFilter(
                 Intent.ACTION_BATTERY_CHANGED
         );
@@ -117,7 +142,7 @@ public class ContactListActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
 
-        // Stop listening when this screen is no longer visible.
+
         if (batteryReceiverRegistered) {
             unregisterReceiver(batteryReceiver);
             batteryReceiverRegistered = false;
@@ -146,128 +171,147 @@ public class ContactListActivity extends AppCompatActivity {
         });
     }
 
+
+
     private void loadContacts() {
 
-        ContactDataSource dataSource =
-                new ContactDataSource(this);
+        Log.d("MyContactList", "Loading contacts from REST API");
 
-        try {
-            dataSource.open();
-            contacts = dataSource.getContacts();
+        RestClient.executeGetRequest(
+                CONTACTSAPI,
+                this,
+                new VolleyCallback() {
 
-        } catch (Exception e) {
+                    @Override
+                    public void onSuccess(ArrayList<Contact> result) {
 
-            contacts = new ArrayList<>();
+                        contacts = result;
 
-            Toast.makeText(
-                    this,
-                    "Could not load contacts.",
-                    Toast.LENGTH_LONG
-            ).show();
+                        Log.d("MyContactList",
+                                "Contacts loaded: " + contacts.size());
 
-        } finally {
-            dataSource.close();
-        }
+                        RecyclerView.LayoutManager layoutManager =
+                                new LinearLayoutManager(
+                                        ContactListActivity.this);
 
-        RecyclerView.LayoutManager layoutManager =
-                new LinearLayoutManager(this);
+                        recyclerViewContacts.setLayoutManager(layoutManager);
 
-        recyclerViewContacts.setLayoutManager(layoutManager);
+                        contactAdapter = new ContactAdapter(contacts);
 
-        contactAdapter = new ContactAdapter(contacts);
+                        Switch deleteSwitch =
+                                findViewById(R.id.switchDelete);
 
-        Switch deleteSwitch =
-                findViewById(R.id.switchDelete);
-
-        contactAdapter.setDelete(
-                deleteSwitch.isChecked()
-        );
-
-        contactAdapter.setOnItemClickListener(view -> {
-
-            RecyclerView.ViewHolder viewHolder =
-                    (RecyclerView.ViewHolder) view.getTag();
-
-            int position = viewHolder.getAdapterPosition();
-
-            if (position != RecyclerView.NO_POSITION) {
-
-                int contactId =
-                        contacts.get(position).getContactId();
-
-                Intent intent = new Intent(
-                        ContactListActivity.this,
-                        MainActivity.class
-                );
-
-                intent.putExtra("contactID", contactId);
-
-                startActivity(intent);
-            }
-        });
-
-        contactAdapter.setOnDeleteClickListener(view -> {
-
-            RecyclerView.ViewHolder viewHolder =
-                    (RecyclerView.ViewHolder) view.getTag();
-
-            int position = viewHolder.getAdapterPosition();
-
-            if (position != RecyclerView.NO_POSITION) {
-
-                int contactId =
-                        contacts.get(position).getContactId();
-
-                ContactDataSource deleteDataSource =
-                        new ContactDataSource(
-                                ContactListActivity.this
+                        contactAdapter.setDelete(
+                                deleteSwitch.isChecked()
                         );
 
-                boolean wasDeleted = false;
 
-                try {
-                    deleteDataSource.open();
+                        contactAdapter.setOnItemClickListener(view -> {
 
-                    wasDeleted =
-                            deleteDataSource.deleteContact(contactId);
+                            RecyclerView.ViewHolder viewHolder =
+                                    (RecyclerView.ViewHolder) view.getTag();
 
-                } catch (Exception e) {
+                            int position = viewHolder.getAdapterPosition();
 
-                    Toast.makeText(
-                            ContactListActivity.this,
-                            "Could not delete contact.",
-                            Toast.LENGTH_LONG
-                    ).show();
+                            if (position != RecyclerView.NO_POSITION) {
 
-                } finally {
-                    deleteDataSource.close();
+                                int contactId =
+                                        contacts.get(position).getContactId();
+
+                                Intent intent = new Intent(
+                                        ContactListActivity.this,
+                                        MainActivity.class
+                                );
+
+                                intent.putExtra("contactID", contactId);
+
+                                startActivity(intent);
+                            }
+                        });
+
+
+                        contactAdapter.setOnDeleteClickListener(view -> {
+
+                            RecyclerView.ViewHolder viewHolder =
+                                    recyclerViewContacts.findContainingViewHolder(view);
+
+                            if (viewHolder == null) {
+                                return;
+                            }
+
+                            int position = viewHolder.getBindingAdapterPosition();
+
+                            if (position == RecyclerView.NO_POSITION) {
+                                return;
+                            }
+
+                            Contact contactToDelete = contacts.get(position);
+
+                            int contactId = contactToDelete.getContactId();
+                            if (contactId <= 0) {
+                                Toast.makeText(
+                                        ContactListActivity.this,
+                                        "Invalid contact ID",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                                return;
+                            }
+                            new AlertDialog.Builder(ContactListActivity.this)
+                                    .setTitle("Delete Contact")
+                                    .setMessage(
+                                            "Are you sure you want to delete "
+                                                    + contactToDelete.getContactName()
+                                                    + "?"
+                                    )
+                                    .setNegativeButton("Cancel", (dialog, which) -> {
+                                        dialog.dismiss();
+                                    })
+                                    .setPositiveButton("Delete", (dialog, which) -> {
+
+                                        Log.d("MyContactList",
+                                                "Deleting contact ID: " + contactId);
+
+                                        RestClient.executeDeleteRequest(
+                                                contactToDelete,
+                                                CONTACTSAPI + contactId,
+                                                ContactListActivity.this,
+                                                new VolleyCallback() {
+
+                                                    @Override
+                                                    public void onSuccess(
+                                                            ArrayList<Contact> result) {
+
+                                                        Toast.makeText(
+                                                                ContactListActivity.this,
+                                                                "Contact deleted successfully",
+                                                                Toast.LENGTH_SHORT
+                                                        ).show();
+
+                                                        // Refresh contacts from the API
+                                                        loadContacts();
+                                                    }
+                                                }
+                                        );
+                                    })
+                                    .show();
+                        });
+
+                        recyclerViewContacts.setAdapter(contactAdapter);
+
+                        boolean isEmpty = contacts.isEmpty();
+
+                        textViewNoContacts.setVisibility(
+                                isEmpty ? View.VISIBLE : View.GONE
+                        );
+
+                        recyclerViewContacts.setVisibility(
+                                isEmpty ? View.GONE : View.VISIBLE
+                        );
+                    }
                 }
-
-                if (wasDeleted) {
-
-                    Toast.makeText(
-                            ContactListActivity.this,
-                            "Contact deleted",
-                            Toast.LENGTH_SHORT
-                    ).show();
-
-                    loadContacts();
-                }
-            }
-        });
-
-        recyclerViewContacts.setAdapter(contactAdapter);
-
-        boolean isEmpty = contacts.isEmpty();
-
-        textViewNoContacts.setVisibility(
-                isEmpty ? View.VISIBLE : View.GONE
-        );
-
-        recyclerViewContacts.setVisibility(
-                isEmpty ? View.GONE : View.VISIBLE
         );
     }
+
 
     private void initListButton() {
 
@@ -333,4 +377,8 @@ public class ContactListActivity extends AppCompatActivity {
                 }
         );
     }
+
+    public static final String CONTACTSAPI =
+            "https://fvtcdp.azurewebsites.net/api/Contact/";
+
 }

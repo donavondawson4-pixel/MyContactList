@@ -3,6 +3,7 @@ package com.example.mycontactlist;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -32,12 +33,20 @@ import android.view.View;
 
 import android.content.Intent;
 
+import java.util.ArrayList;
+
 
 import android.graphics.Bitmap;
 import android.provider.MediaStore;
 import android.widget.ImageView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+
+
+
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.MobileAds;
 
 
 
@@ -95,30 +104,23 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        new Thread(() -> {
+            MobileAds.initialize(getApplicationContext(), status -> {
+                runOnUiThread(() -> {
+                    AdView adView = findViewById(R.id.adViewMain);
+                    AdRequest adRequest = new AdRequest.Builder().build();
+                    adView.loadAd(adRequest);
+                });
+            });
+        }).start();
+
+
         int contactId = getIntent().getIntExtra("contactID", -1);
 
-        if (contactId == -1) {
-            currentContact = new Contact();
-        } else {
-            ContactDataSource dataSource =
-                    new ContactDataSource(this);
 
-            try {
-                dataSource.open();
-                currentContact =
-                        dataSource.getSpecificContact(contactId);
-            } catch (Exception e) {
-                currentContact = new Contact();
+        currentContact = new Contact();
 
-                Toast.makeText(
-                        this,
-                        "Could not load contact.",
-                        Toast.LENGTH_LONG
-                ).show();
-            } finally {
-                dataSource.close();
-            }
-        }
 
         initTextChangedEvents();
         initSaveButton();
@@ -140,6 +142,43 @@ public class MainActivity extends AppCompatActivity
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        if (contactId != -1) {
+            loadContactFromApi(contactId);
+        }
+
+    }
+
+    private void loadContactFromApi(int contactId) {
+
+        Log.d("MyContactList",
+                "Loading contact ID: " + contactId );
+        RestClient.executeGetOneRequest(
+                ContactListActivity.CONTACTSAPI + contactId,
+                this,
+                new VolleyCallback() {
+
+                    @Override
+                    public void onSuccess(ArrayList<Contact> result) {
+                        if (result == null || result.isEmpty()) {
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "Contact not found",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                            return;
+                        }
+                        currentContact = result.get(0);
+
+                        Log.d("MyContactList",
+                                "Loaded: " +
+                                        currentContact.getContactName());
+
+                        displayContact();
+                    }
+
+                }
+        );
     }
 
     @Override
@@ -335,16 +374,34 @@ public class MainActivity extends AppCompatActivity
         });
 
     }
+
     private void initTextChangedEvents() {
-        watchField(R.id.editName, currentContact::setContactName);
-        watchField(R.id.editAddress, currentContact::setStreetAddress);
-        watchField(R.id.editCity, currentContact::setCity);
-        watchField(R.id.editState, currentContact::setState);
-        watchField(R.id.editZipcode, currentContact::setZipCode);
-        watchField(R.id.editHome, currentContact::setPhoneNumber);
-        watchField(R.id.editCell, currentContact::setCellNumber);
-        watchField(R.id.editEMail, currentContact::setEmail);
+
+        watchField(R.id.editName,
+                value -> currentContact.setContactName(value));
+
+        watchField(R.id.editAddress,
+                value -> currentContact.setStreetAddress(value));
+
+        watchField(R.id.editCity,
+                value -> currentContact.setCity(value));
+
+        watchField(R.id.editState,
+                value -> currentContact.setState(value));
+
+        watchField(R.id.editZipcode,
+                value -> currentContact.setZipCode(value));
+
+        watchField(R.id.editHome,
+                value -> currentContact.setPhoneNumber(value));
+
+        watchField(R.id.editCell,
+                value -> currentContact.setCellNumber(value));
+
+        watchField(R.id.editEMail,
+                value -> currentContact.setEmail(value));
     }
+
 
     private void watchField(int fieldId, ContactTextSetter setter) {
         EditText field = findViewById(fieldId);
@@ -376,7 +433,9 @@ public class MainActivity extends AppCompatActivity
         Button saveButton = findViewById(R.id.ButtonSave);
 
         saveButton.setOnClickListener(view -> {
-            if (currentContact.getContactName().trim().isEmpty()) {
+            String contactName = currentContact.getContactName();
+
+            if (contactName == null || contactName.trim().isEmpty()) {
                 Toast.makeText(
                         MainActivity.this,
                         "Enter a contact name first",
@@ -384,45 +443,74 @@ public class MainActivity extends AppCompatActivity
                 ).show();
                 return;
             }
+            boolean isNewContact = currentContact.getContactId() <= 0;
 
-            ContactDataSource dataSource =
-                    new ContactDataSource(MainActivity.this);
-            dataSource.open();
 
-            boolean wasSuccessful;
+            VolleyCallback callback = new VolleyCallback() {
+                @Override
+                public void onSuccess(ArrayList<Contact> result) {
 
-            if (currentContact.getContactId() == -1) {
-                wasSuccessful = dataSource.insertContact(currentContact);
+                    if (result == null || result.isEmpty()) {
+                        Toast.makeText(
+                                MainActivity.this,
+                                "Unable to confirm contact save",
+                                Toast.LENGTH_LONG
+                        ).show();
+                        return;
+                    }
+                    if (isNewContact && currentContact.getContactId() <= 0) {
+                        Toast.makeText(
+                                MainActivity.this,
+                                "Saved, but no contact ID was returned",
+                                Toast.LENGTH_LONG
+                        ).show();
+                        return;
+                    }
+                    Log.d("MyContactList",
+                            "Contact saved with ID: "
+                                    + currentContact.getContactId());
+                    ToggleButton editToggle =
+                            findViewById(R.id.toggleButtonEdit);
 
-                if (wasSuccessful) {
-                    currentContact.setContactId(dataSource.getLastContactId());
+                    editToggle.setChecked(false);
+                    setForEditing(false);
+
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Contact saved successfully",
+                            Toast.LENGTH_SHORT
+                    ).show();
                 }
-            } else {
-                wasSuccessful = dataSource.updateContact(currentContact);
-            }
+            };
+            if (isNewContact) {
+                Log.d("MyContactList", "Creating new contact");
 
-            dataSource.close();
-
-            if (wasSuccessful) {
-                ToggleButton editToggle =
-                        findViewById(R.id.toggleButtonEdit);
-                editToggle.setChecked(false);
-                setForEditing(false);
-
-                Toast.makeText(
+                RestClient.executePostRequest(
+                        currentContact,
+                        ContactListActivity.CONTACTSAPI,
                         MainActivity.this,
-                        "Contact saved",
-                        Toast.LENGTH_SHORT
-                ).show();
+                        callback
+                );
+
             } else {
-                Toast.makeText(
+                Log.d("MyContactList",
+                        "Updating contact: "
+                                + currentContact.getContactId());
+
+                RestClient.executePutRequest(
+                        currentContact,
+                        ContactListActivity.CONTACTSAPI
+                                + currentContact.getContactId(),
                         MainActivity.this,
-                        "Unable to save contact",
-                        Toast.LENGTH_SHORT
-                ).show();
+                        callback
+                );
             }
         });
     }
+
+
+
+
     private void displayContact() {
 
         EditText editName = findViewById(R.id.editName);
